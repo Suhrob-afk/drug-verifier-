@@ -3,8 +3,8 @@
   <head>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script>
-const contractAddress = 0xd9145CCE52D386f254917e481eB44e9943F39138;
-const contractABI = [ ... ]; //[
+const contractAddress = "0xd9145CCE52D386f254917e481eB44e9943F39138";
+const contractABI= [
 	{
 		"anonymous": false,
 		"inputs": [
@@ -23,6 +23,34 @@ const contractABI = [ ... ]; //[
 		],
 		"name": "BatchCreated",
 		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "batchId",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "drugName",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "manufacturer",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "metadataURI",
+				"type": "string"
+			}
+		],
+		"name": "createBatch",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
 	},
 	{
 		"anonymous": false,
@@ -53,19 +81,18 @@ const contractABI = [ ... ]; //[
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "",
+				"name": "batchId",
 				"type": "string"
-			}
-		],
-		"name": "batchExists",
-		"outputs": [
+			},
 			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
 			}
 		],
-		"stateMutability": "view",
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -106,28 +133,19 @@ const contractABI = [ ... ]; //[
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "batchId",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "drugName",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "manufacturer",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "metadataURI",
+				"name": "",
 				"type": "string"
 			}
 		],
-		"name": "createBatch",
-		"outputs": [],
-		"stateMutability": "nonpayable",
+		"name": "batchExists",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -182,31 +200,43 @@ const contractABI = [ ... ]; //[
 		],
 		"stateMutability": "view",
 		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "batchId",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "transferOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
 	}
-]
-</script>
-    <title>Drug Batch Verifier</title>
-  </head>
-  <body>
-    <h1>Welcome to Drug Batch Verifier</h1>
-    <p>Coming soon: verify your medicine by scanning a QR code.</p>
+];
+ async function loadBatch() {
+        const batchId = window.location.pathname.split("/").pop();
+
+        if (!batchId) {
+          document.getElementById("output").innerHTML = "No batch ID in the URL.";
+          return;
+        }
+
+        if (typeof window.ethereum === "undefined") {
+          document.getElementById("output").innerHTML = "Please install MetaMask.";
+          return;
+        }
+
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          await provider.send("eth_requestAccounts", []);
+          const signer = provider.getSigner();
+          const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+          const batch = await contract.getBatchInfo(batchId);
+
+          document.getElementById("output").innerHTML = `
+            <h2>Batch ID: ${batchId}</h2>
+            <p><strong>Drug Name:</strong> ${batch.drugName}</p>
+            <p><strong>Manufacturer:</strong> ${batch.manufacturer}</p>
+            <p><strong>Current Owner:</strong> ${batch.currentOwner}</p>
+            <p><strong>Metadata URI:</strong> <a href="${batch.metadataURI}" target="_blank">${batch.metadataURI}</a></p>
+          `;
+        } catch (err) {
+          document.getElementById("output").innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+          console.error(err);
+        }
+      }
+
+      window.onload = loadBatch;
+    </script>
   </body>
 </html>
